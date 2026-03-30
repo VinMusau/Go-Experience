@@ -95,7 +95,7 @@ class DependantController extends Controller
         ]);
 
         if ($request->hasFile('avatar')) {
-            if ($dependant->avatar && Storage::disk('public')->Arr::exists($dependant->avatar)) {
+            if ($dependant->avatar && Storage::disk('public')->exists($dependant->avatar)) {
                 Storage::disk('public')->delete($dependant->avatar);
             }
 

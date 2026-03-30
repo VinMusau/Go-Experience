@@ -5,7 +5,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DependantController;
 use App\Http\Controllers\AuthController;
-
+use App\Http\Controllers\PingController;
+use Illuminate\Support\Facades\Broadcast;
 
 Route::post('/register', [AuthController::class, 'register']);
 
@@ -21,3 +22,6 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/dependants/{dependant}/avatar', [DependantController::class, 'updateAvatar']);
 });
 
+Route::post('/iot/ping', [PingController::class, 'store']);
+
+Broadcast::routes(['middleware' => ['auth:api']]);

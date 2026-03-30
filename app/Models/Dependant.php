@@ -14,4 +14,8 @@ class Dependant extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function tag(){
+        return $this->hasOne(Tag::class);
+    }
 }
