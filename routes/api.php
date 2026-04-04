@@ -20,6 +20,18 @@ Route::middleware('auth:api')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
 
     Route::post('/dependants/{dependant}/avatar', [DependantController::class, 'updateAvatar']);
+
+    Route::get('/notifications', function (Request $request) {
+        $user = $request->user();
+
+        $alerts = $user->alerts()->latest()->take(10)->get();
+        return response()->json($alerts);
+    });
+
+    Route::post('/notifications/clear', function (Request $request) {
+        $request->user()->notifications()->delete();
+        return response()->json(['message' => 'Notifications cleared']);
+    });
 });
 
 Route::post('/iot/ping', [PingController::class, 'store']);

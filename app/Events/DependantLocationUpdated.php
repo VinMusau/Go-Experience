@@ -40,4 +40,20 @@ class DependantLocationUpdated implements ShouldBroadcast
             new PrivateChannel('dependant.' . $this->tag->dependant->id),
         ];
     }
+
+    public function broadcastAs(): string
+    {
+        return 'location.updated';
+    }
+
+    public function broadcastWith(): array
+    {
+        return [
+            'dependant_id' => $this->tag->dependant->id,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
+            'zone_name' => $this->zoneName,
+           // 'zone_type' => $this->zoneType,
+        ];
+    }
 }

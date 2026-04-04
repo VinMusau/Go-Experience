@@ -6,6 +6,7 @@ use App\Models\LocationPing;
 use App\Models\Tag;
 use App\Models\Zone;
 use App\Events\DependantLocationUpdated;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -53,6 +54,15 @@ class PingController extends Controller
                 $currentZone = $zone;
                 break;
             }
+        }
+
+        if ($currentZone) {
+            Notification::create([
+                'user_id' => $tag->dependant->user_id,
+                'dependant_name' => $tag->dependant->name,
+                'message' => "Hello, {$tag->dependant->name} has entered the zone: {$currentZone->name}",
+                'type' => 'success',
+            ]);
         }
           
 
