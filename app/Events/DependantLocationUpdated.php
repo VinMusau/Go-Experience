@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Models\Notification;
 use App\Models\Tag;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -26,7 +27,15 @@ class DependantLocationUpdated implements ShouldBroadcast
        // public ?string $zoneType,
     )
     {
-        //
+        $dependant = $this->tag->dependant;
+
+        Notification::create([
+            'user_id' => $dependant->user_id,
+            'dependant_name' => $dependant->name,
+            'message' => "Hello, {$dependant->name} has arrived at:" . ($this->zoneName ?? 'an unknown location'),
+            'is_read' => false,
+            'type' => 'info',
+        ]);
     }
 
     /**

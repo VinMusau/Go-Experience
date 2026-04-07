@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DependantController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PingController;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -28,10 +29,10 @@ Route::middleware('auth:api')->group(function () {
         return response()->json($alerts);
     });
 
-    Route::post('/notifications/clear', function (Request $request) {
-        $request->user()->notifications()->delete();
-        return response()->json(['message' => 'Notifications cleared']);
-    });
+    Route::post('/notifications/clear', [NotificationController::class, 'clearAll']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
 });
 
 Route::post('/iot/ping', [PingController::class, 'store']);
