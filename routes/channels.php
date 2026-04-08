@@ -24,6 +24,5 @@ Broadcast::channel('dependant.{id}', function ($user, $id) {
         return false;
     }
 
-    return (int) $user->id === (int) Dependant::find($id)?->user_id;
-    // return (int) $user->id === (int) $dependant->user_id;
+    return (int) $user->id === (int) $dependant->user_id;
 }, ['guards' => ['api']]);
