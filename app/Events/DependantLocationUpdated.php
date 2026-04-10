@@ -4,6 +4,8 @@ namespace App\Events;
 
 use App\Models\Notification;
 use App\Models\Tag;
+use App\Models\Zone;
+use Egulias\EmailValidator\Warning\Warning;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
@@ -23,18 +25,40 @@ class DependantLocationUpdated implements ShouldBroadcast
         public Tag $tag,
         public float $latitude,
         public float $longitude,
-        public ?string $zoneName,
-       // public ?string $zoneType,
+        public ?string $zoneName = null,
     )
     {
         $dependant = $this->tag->dependant;
+        $parent = $dependant->user;
+
+        $activeZone = $parent->zones->first(fn($zone) => $zone->isInside($this->latitude, $this->longitude));
+
+        if ($activeZone) {
+            $this->zoneName = $activeZone->name;
+            // Check if it's a restricted zone to set the alert level
+            $isRestricted = ($activeZone->type === 'restricted');
+            
+            $type = $isRestricted ? 'danger' : 'success';
+            $message = $isRestricted 
+                ? "🚨 ALERT: {$dependant->name} entered a RESTRICTED zone: {$activeZone->name}!"
+                : "Hello, {$dependant->name} has arrived at: {$activeZone->name}";
+        } else {
+            $this->zoneName = 'an unknown location';
+            $type = 'info';
+            $message = "{$dependant->name} is currently at an unknown location.";
+        }
+
+        $message = "Hello, {$dependant->name} has arrived at:  {$this->zoneName}";
+        if ($activeZone && $activeZone->is_restricted) {
+            $message .= " Warning: {$dependant->name} has entered a restricted area!";
+        }
 
         Notification::create([
-            'user_id' => $dependant->user_id,
+            'user_id' => $parent->id,
             'dependant_name' => $dependant->name,
-            'message' => "Hello, {$dependant->name} has arrived at:" . ($this->zoneName ?? 'an unknown location'),
+            'message' => "$message",
             'is_read' => false,
-            'type' => 'info',
+            'type' => '$type',
         ]);
     }
 

@@ -6,6 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class Zone extends Model
 {
+    protected $fillable = [
+        'user_id',
+        'name',
+        'latitude',
+        'longitude',
+        'radius',
+        'type',
+    ];
     public function isInside(float $latitude, float $longitude): bool {
         // Implement logic to determine if the given coordinates are inside the zone
         $earthRadius = 6371000; // Earth's radius in meters
@@ -23,5 +31,10 @@ class Zone extends Model
 
         $distance = $earthRadius * $c;
         return $distance <= $this->radius; // Assume it's inside if within the zone's radius
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

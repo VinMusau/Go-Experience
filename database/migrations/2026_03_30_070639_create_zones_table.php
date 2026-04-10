@@ -13,10 +13,11 @@ return new class extends Migration
     {
         Schema::create('zones', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('name');
-            $table->decimal('latitude', 10, 7);
-            $table->decimal('longitude', 10, 7);
-            $table->decimal('radius', 5, 2); // in meters
+            $table->decimal('latitude', 10, 8);
+            $table->decimal('longitude', 11, 8);
+            $table->decimal('radius'); // in meters
             $table->enum('type', ['safe_zone', 'restricted'])->default('safe_zone');
             $table->timestamps();
         });
