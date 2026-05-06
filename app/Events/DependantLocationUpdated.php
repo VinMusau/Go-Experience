@@ -5,22 +5,26 @@ namespace App\Events;
 use App\Models\Notification;
 use App\Models\Tag;
 use App\Models\Zone;
+use App\Enums\EventType;
 use Egulias\EmailValidator\Warning\Warning;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class DependantLocationUpdated implements ShouldBroadcast
+class DependantLocationUpdated implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
      * Create a new event instance.
      */
+    public ?string $eventType = null;
+    public string $finalMessage;
+
     public function __construct(
         public Tag $tag,
         public float $latitude,
@@ -35,30 +39,47 @@ class DependantLocationUpdated implements ShouldBroadcast
 
         if ($activeZone) {
             $this->zoneName = $activeZone->name;
-            // Check if it's a restricted zone to set the alert level
-            $isRestricted = ($activeZone->type === 'restricted');
+            $lowerZone = strtolower($activeZone->name);
+
+            $this->eventType = match (true) {
+                 str_contains($lowerZone, 'home') => 'ARRIVED_HOME',
+                 str_contains($lowerZone, 'school') => 'ARRIVED_SCHOOL',
+                 str_contains($lowerZone, 'sports') => 'CHECKED_IN_SPORTS',
+                 str_contains($lowerZone, 'church') => 'CHECKED_IN_CHURCH',
+                 str_contains($lowerZone, 'bus') => 'BOARDED_BUS',
+                 str_contains($lowerZone, 'delay') => 'BUS_DELAY',
+                default => 'UNKNOWN',
+            };
             
-            $type = $isRestricted ? 'danger' : 'success';
-            $message = $isRestricted 
-                ? "🚨 ALERT: {$dependant->name} entered a RESTRICTED zone: {$activeZone->name}!"
+            
+            $isRestricted = ($activeZone->type === 'restricted');
+            $notifType = $isRestricted ? 'danger' : 'success';
+            $this->finalMessage = $isRestricted 
+                ? "ALERT: {$dependant->name} entered a RESTRICTED zone: {$activeZone->name}!"
                 : "Hello, {$dependant->name} has arrived at: {$activeZone->name}";
         } else {
-            $this->zoneName = 'an unknown location';
-            $type = 'info';
-            $message = "{$dependant->name} is currently at an unknown location.";
+            $this->zoneName = 'in transit';
+            $this->eventType = 'BOARDED_BUS';
+            $notifType = 'info';
+            $this->finalMessage = "{$dependant->name} is currently in transit.";
         }
 
-        $message = "Hello, {$dependant->name} has arrived at:  {$this->zoneName}";
-        if ($activeZone && $activeZone->is_restricted) {
-            $message .= " Warning: {$dependant->name} has entered a restricted area!";
-        }
+
+        $dependant->events()->create([
+            'type' => $this->eventType,
+            'location_name' => $this->zoneName,
+            'latitude' => $this->latitude,
+            'longitude' => $this->longitude,
+            'timestamp' => now(),
+        ]);
 
         Notification::create([
             'user_id' => $parent->id,
+            'dependant_id' => $dependant->id,
             'dependant_name' => $dependant->name,
-            'message' => "$message",
+            'message' => $this->finalMessage,
             'is_read' => false,
-            'type' => '$type',
+            'type' => $notifType,
         ]);
     }
 
@@ -81,12 +102,33 @@ class DependantLocationUpdated implements ShouldBroadcast
 
     public function broadcastWith(): array
     {
+        $isDanger = str_contains(strtolower($this->eventType), 'danger') || $this->zoneName === 'RESTRICTED';
+
         return [
             'dependant_id' => $this->tag->dependant->id,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
             'zone_name' => $this->zoneName,
-           // 'zone_type' => $this->zoneType,
+            'type' => $this->eventType,
+            'timestamp' => now()->toDateTimeString(),
+
+            'message' => $this->finalMessage,
+            'category' => ($this->eventType === 'BUS_DELAY' || str_contains($this->finalMessage, 'ALERT')) ? 'alert' : 'info',
         ];
+    }
+
+    protected function generateBroadcastMessage(): string
+    {
+        $name = $this->tag->dependant->name;
+        return match ($this->eventType) {
+            EventType::ARRIVED_HOME->value => "Hello, {$name} has arrived home.",
+            EventType::DEPARTED_HOME->value => "Update: {$name} has left home.",
+            EventType::BOARDED_BUS->value => "{$name} is now in transit.",
+            EventType::ARRIVED_SCHOOL->value => "{$name} has arrived at school.",
+            EventType::LEFT_SCHOOL->value => "{$name} has left school.",
+            EventType::CHECKED_IN_SPORTS->value => "{$name} checked in at sports facility.",
+            EventType::BUS_DELAY->value => "Alert: {$name}'s bus is delayed.",
+            default => "Update: {$name} is currently at {$this->zoneName}.",
+        };
     }
 }

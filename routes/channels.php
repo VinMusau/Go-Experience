@@ -15,14 +15,7 @@ Broadcast::channel('dependant.{id}', function ($user, $id) {
 
 */
 Broadcast::channel('dependant.{id}', function ($user, $id) {
-    // 1. Debug: Log the attempt to your laravel.log
-    \Log::info("Auth Attempt - User: {$user->id}, Requesting Child ID: {$id}");
 
-    $dependant = Dependant::find($id);
-
-    if (!$dependant) {
-        return false;
-    }
-
-    return (int) $user->id === (int) $dependant->user_id;
+   // return (int) $user->id === (int) Dependant::find($id)->user_id;
+   return $user->dependants()->where('id', $id)->exists();
 }, ['guards' => ['api']]);

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\DependantResource;
 use App\Models\Dependant;
 // use Illuminate\Container\Attributes\Storage;
 use Illuminate\Support\Facades\Gate;
@@ -15,8 +16,9 @@ class DependantController extends Controller
      */
     public function index()
     {
-        $dependants = auth()->user()->dependants()->get();
-        return response()->json($dependants);
+        $dependants = auth()->user()->dependants()->with('events')->get();
+
+        return DependantResource::collection($dependants);
     }
 
     
@@ -29,6 +31,11 @@ class DependantController extends Controller
             'gender' => 'required|string|max:255',
             'school_name' => 'required|string|max:255',
             'grade' => 'required|string|max:255',
+
+            'blood_group' => 'nullable|string|max:255',
+            'allergies' => 'nullable|string|max:255',
+            'doctor_contact' => 'nullable|string|max:255',
+            'insurance_provider' => 'nullable|string|max:255',
         ]);
 
         if ($request->hasFile('avatar')) {
@@ -69,17 +76,28 @@ class DependantController extends Controller
             'gender'        => 'sometimes|required|string|max:255',
             'school_name'   => 'sometimes|required|string|max:255',
             'grade'         => 'sometimes|required|string|max:255',
+
+            'blood_group' => 'nullable|string|max:255',
+            'allergies' => 'nullable|string|max:255',
+            'doctor_contact' => 'nullable|string|max:255',
+            'insurance_provider' => 'nullable|string|max:255',
         ]);
 
         if ($request->hasFile('avatar')) {
+            if ($dependant->avatar) {
+                Storage::disk('public')->delete($dependant->avatar);
+            }
             // Optional: Delete old avatar file here if you want to save space
             $avatarPath = $request->file('avatar')->store('avatars', 'public');
             $validatedData['avatar'] = $avatarPath;
+        } else {
+            unset($validatedData['avatar']);
         }
 
         $dependant->update($validatedData);
+        $dependant->refresh();
         
-        return response()->json($dependant);
+        return new DependantResource($dependant);
     }
 
     public function updateAvatar(Request $request, Dependant $dependant)

@@ -7,6 +7,7 @@ use App\Http\Controllers\DependantController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PingController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Broadcast;
 
 Route::post('/register', [AuthController::class, 'register']);
@@ -32,7 +33,10 @@ Route::middleware('auth:api')->group(function () {
     Route::post('/notifications/clear', [NotificationController::class, 'clearAll']);
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
-    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+
+    Route::put('/user/profile',[UserController::class, 'update']);
+        
 });
 
 Route::post('/iot/ping', [PingController::class, 'store']);
